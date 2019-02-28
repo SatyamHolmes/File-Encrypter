@@ -42,16 +42,29 @@ class Application(tk.Frame):
 		self.decryptbutton.grid(column=2,row=4,pady=10)
 
 	def browsefile(self):
+		self.filebox.delete(0,tk.END)
 		file=filedialog.askopenfilename(initialdir='/')
 		self.filebox.insert(0,file)
 
 	def browsedest(self):
+		self.savebox.delete(0,tk.END)
 		save=filedialog.askdirectory(initialdir='/')
 		self.savebox.insert(0,save)	
 
+	def verify(self):
+		if(self.filebox.get()==""):
+			self.err.set("File not specified")
+		elif(not re.search("^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$",self.passbox.get())):	
+			self.err.set("Password must contain atleast 1 capital letter, 1 small letter, 1 number and 8 digits long")
+		elif(self.passbox.get()!=self.verifypassbox.get()):
+			self.err.set("Passwords do not match")
+		else:
+			return True
+		return False
+
 	def encrypt(self):
 		try:
-			if(self.filebox.get()!="" and re.search("^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$",self.passbox.get()) and self.passbox.get()==self.verifypassbox.get()):
+			if(self.verify()):
 				filename=self.filebox.get().split('/')[-1]
 				with open(self.filebox.get(), 'rb') as f_in, gz.open(filename+'.gz', 'wb') as f_out:
 					shutil.copyfileobj(f_in,f_out)
@@ -60,26 +73,18 @@ class Application(tk.Frame):
 					pyAesCrypt.encryptStream(fIn, fOut, self.passbox.get(),64*1024)
 				remove(filename+".gz")
 				self.err.set("Encryption Successfull")
-			else:
-				if(self.filebox.get()==""):
-					self.err.set("File not specified")
-				elif(not re.search("^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$",self.passbox.get())):	
-					self.err.set("Password must contain atleast 1 capital letter, 1 small letter, 1 number and 8 digits long")
-				else:
-					self.err.set("Passwords do not match")
-				#self.errmsg.grid(column=1,row=4)
+				self.filebox.delete(0,tk.END)
+				self.savebox.delete(0,tk.END)
 		except FileNotFoundError:
 			self.err.set("Invalid File or save location")
 		finally:
-			self.filebox.delete(0,tk.END)
 			self.passbox.delete(0,tk.END)
 			self.verifypassbox.delete(0,tk.END)
-			self.savebox.delete(0,tk.END)
 
 	def decrypt(self):
 		filename=self.filebox.get().split('/')[-1]
 		try:
-			if(self.filebox.get()!=""  and filename.split('.')[-1]=='aes' and re.search("^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$",self.passbox.get()) and self.passbox.get()==self.verifypassbox.get()):
+			if(self.verify()  and filename.split('.')[-1]=='aes'):
 				encFileSize = stat(self.filebox.get()).st_size
 				with open(self.filebox.get(), "rb") as fIn, open(filename+".gz", "wb") as fOut:
 					pyAesCrypt.decryptStream(fIn, fOut,self.passbox.get(),64*1024, encFileSize)
@@ -88,24 +93,18 @@ class Application(tk.Frame):
 						shutil.copyfileobj(f_in,f_out)
 				remove(filename+".gz")
 				self.err.set("Decryption Successfull")
+				self.filebox.delete(0,tk.END)
+				self.savebox.delete(0,tk.END)
 			else:
-				if(self.filebox.get()==""):
-					self.err.set("File not specified")
-				elif(not filename.split('.')[-1]=='aes'):
+				if(not filename.split('.')[-1]=='aes'):
 					self.err.set("Invalid encrypted file")
-				elif(not re.search("^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$",self.passbox.get())):	
-					self.err.set("Password must contain atleast 1 capital letter, 1 small letter, 1 number and 8 digits long")
-				else:
-					self.err.set("Passwords do not match")
 		except ValueError:
 			self.err.set("Invalid password")
 		except FileNotFoundError:
 			self.err.set("Invalid File or save location")
 		finally:
-			self.filebox.delete(0,tk.END)
 			self.passbox.delete(0,tk.END)
 			self.verifypassbox.delete(0,tk.END)
-			self.savebox.delete(0,tk.END)
 		
 root=tk.Tk()
 app=Application(master=root)
