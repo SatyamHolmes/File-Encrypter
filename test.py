@@ -1,3 +1,8 @@
+#requires python 3
+#requires tkinter for drawing GUI component
+#used pyAesCrypt library for AES encyption
+#compress the file using gzip library
+
 import tkinter as tk
 from tkinter import filedialog
 import gzip as gz
@@ -52,11 +57,14 @@ class Application(tk.Frame):
 		self.savebox.insert(0,save)	
 
 	def verify(self):
+		#check for file selection
 		if(self.filebox.get()==""):
 			self.err.set("File not specified")
-		elif(not re.search("^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$",self.passbox.get())):	
+		elif(self.savebox.get()==""):
+			self.err.set("Save location not specified")
+		elif(not re.search("^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$",self.passbox.get())):	#check if the password contains atleasr 1 capitla letter, 1 small letter ,1 number and is atleast 8 characters long		
 			self.err.set("Password must contain atleast 1 capital letter, 1 small letter, 1 number and 8 digits long")
-		elif(self.passbox.get()!=self.verifypassbox.get()):
+		elif(self.passbox.get()!=self.verifypassbox.get()): #check if password match
 			self.err.set("Passwords do not match")
 		else:
 			return True
