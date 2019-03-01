@@ -1,7 +1,7 @@
 #requires python 3
 #requires tkinter for drawing GUI component
-#used pyAesCrypt library for AES encyption
-#compress the file using gzip library
+#uses pyAesCrypt library for AES encyption
+#compresses the file using gzip library
 
 import tkinter as tk
 from tkinter import filedialog
@@ -26,11 +26,11 @@ class Application(tk.Frame):
 		self.browse.grid(column=2,row=0,padx=10)
 		self.passlabel=tk.Label(self,text="Password:  ")
 		self.passlabel.grid(column=0,row=1)
-		self.passbox=tk.Entry(self,bd=0,width=50)
+		self.passbox=tk.Entry(self,bd=0,width=50,show='*')
 		self.passbox.grid(column=1,row=1,pady=10)
 		self.verifypasslabel=tk.Label(self,text="Verify Password:  ")
 		self.verifypasslabel.grid(column=0,row=2)
-		self.verifypassbox=tk.Entry(self,bd=0,width=50)
+		self.verifypassbox=tk.Entry(self,bd=0,width=50,show='*')
 		self.verifypassbox.grid(column=1,row=2,pady=10)
 		self.savelabel=tk.Label(self,text="save:  ")
 		self.savelabel.grid(column=0,row=3)
@@ -56,12 +56,11 @@ class Application(tk.Frame):
 		save=filedialog.askdirectory(initialdir='/')
 		self.savebox.insert(0,save)	
 
-	def verify(self):
-		#check for file selection
-		if(self.filebox.get()==""):
+	def verify(self): 
+		if(self.filebox.get()==""): #check for file selection
 			self.err.set("File not specified")
-		elif(self.savebox.get()==""):
-			self.err.set("Save location not specified")
+		elif(self.savebox.get()==""): # check if save location is specified
+			self.err.set("Save location not specified") 
 		elif(not re.search("^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$",self.passbox.get())):	#check if the password contains atleasr 1 capitla letter, 1 small letter ,1 number and is atleast 8 characters long		
 			self.err.set("Password must contain atleast 1 capital letter, 1 small letter, 1 number and 8 digits long")
 		elif(self.passbox.get()!=self.verifypassbox.get()): #check if password match
@@ -70,17 +69,21 @@ class Application(tk.Frame):
 			return True
 		return False
 
-	def encrypt(self):
+	def encrypt(self): #method to encrypt the file
 		try:
 			if(self.verify()):
 				filename=self.filebox.get().split('/')[-1]
+				#compress the file
 				with open(self.filebox.get(), 'rb') as f_in, gz.open(filename+'.gz', 'wb') as f_out:
 					shutil.copyfileobj(f_in,f_out)
-		
+				#encrypt the compressed file
 				with open(filename+".gz",'rb') as fIn, open(self.savebox.get()+"/"+filename+".aes", "wb") as fOut:
 					pyAesCrypt.encryptStream(fIn, fOut, self.passbox.get(),64*1024)
+				#remove the temporary compressed file 
 				remove(filename+".gz")
-				self.err.set("Encryption Successfull")
+				self.err.set("Encryption Successfull") #display the message
+
+				#clear the input boxes
 				self.filebox.delete(0,tk.END)
 				self.savebox.delete(0,tk.END)
 		except FileNotFoundError:
@@ -89,18 +92,24 @@ class Application(tk.Frame):
 			self.passbox.delete(0,tk.END)
 			self.verifypassbox.delete(0,tk.END)
 
-	def decrypt(self):
+	def decrypt(self): #method to decrypt the file
 		filename=self.filebox.get().split('/')[-1]
 		try:
 			if(self.verify()  and filename.split('.')[-1]=='aes'):
 				encFileSize = stat(self.filebox.get()).st_size
+
+				#Decrypt the file to obtain the compressed diagram
 				with open(self.filebox.get(), "rb") as fIn, open(filename+".gz", "wb") as fOut:
 					pyAesCrypt.decryptStream(fIn, fOut,self.passbox.get(),64*1024, encFileSize)
 		
+				#Decompress the decrypted file
 				with gz.open(filename+".gz", 'rb') as f_in, open(self.savebox.get()+"/"+filename.split('.')[0]+"."+filename.split('.')[1], 'wb') as f_out:
 						shutil.copyfileobj(f_in,f_out)
+
+				#remove the temporary compressed file
 				remove(filename+".gz")
-				self.err.set("Decryption Successfull")
+				self.err.set("Decryption Successfull") #display the message
+				#clear the input boxes
 				self.filebox.delete(0,tk.END)
 				self.savebox.delete(0,tk.END)
 			else:
